@@ -7,6 +7,11 @@ class Settings(BaseSettings):
     jira_email: str = ""
     jira_api_token: str = ""
     jira_project_key: str = ""
+    # Azure DevOps
+    azure_base_url: str = "https://dev.azure.com"
+    azure_organization: str = ""
+    azure_project: str = ""
+    azure_pat: str = ""
 
     # MongoDB
     mongodb_url: str = "mongodb://localhost:27017"

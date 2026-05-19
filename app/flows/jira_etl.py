@@ -6,17 +6,40 @@ from pymongo import MongoClient
 from sqlalchemy.dialects.mysql import insert as mysql_upsert
 from app.config import settings
 from app.db.mariadb import engine
-from app.models.jira_ticket import JiraTicket
+from app.models.jira_ticket import JiraTicket, Base
 
 
 @task(name="extract_from_mongodb")
 def extract_from_mongodb(limit: int = 500) -> list[dict]:
-    """Read raw Jira tickets from MongoDB."""
+    """Read raw Jira tickets from MongoDB that are newer than the latest synced_at in MariaDB."""
     logger = get_run_logger()
+
+    # Determine the latest synced_at already in MariaDB to do incremental extraction
+    last_synced = None
+    try:
+        with engine.connect() as conn:
+            result = conn.execute(
+                JiraTicket.__table__.select().with_only_columns(
+                    JiraTicket.__table__.c.synced_at
+                ).order_by(JiraTicket.__table__.c.synced_at.desc()).limit(1)
+            ).fetchone()
+            if result:
+                last_synced = result[0]
+    except Exception:
+        pass  # table may not exist yet
+
     client = MongoClient(settings.mongodb_url)
     db = client[settings.mongodb_database]
     collection = db["jira_tickets"]
-    docs = list(collection.find({}, {"_id": 0}).sort("_fetched_at", -1).limit(limit))
+
+    query = {}
+    if last_synced:
+        query["_fetched_at"] = {"$gt": last_synced.isoformat()}
+        logger.info(f"Incremental extract: fetching tickets newer than {last_synced}")
+    else:
+        logger.info("Full extract: no previous sync found")
+
+    docs = list(collection.find(query, {"_id": 0}).sort("_fetched_at", -1).limit(limit))
     logger.info(f"Extracted {len(docs)} tickets from MongoDB")
     client.close()
     return docs
@@ -100,23 +123,22 @@ def transform_tickets(raw_tickets: list[dict]) -> pd.DataFrame:
 
 @task(name="load_to_mariadb")
 def load_to_mariadb(df: pd.DataFrame) -> int:
-    """Upsert transformed tickets DataFrame into MariaDB."""
+    """Bulk upsert transformed tickets DataFrame into MariaDB."""
     logger = get_run_logger()
 
     if df.empty:
         logger.info("No rows to load")
         return 0
 
-    JiraTicket.__table__.metadata.create_all(engine)
+    Base.metadata.create_all(engine)
 
     rows = df.to_dict(orient="records")
+    # Bulk upsert: single statement with all rows instead of row-by-row
     with engine.begin() as conn:
-        for row in rows:
-            stmt = mysql_upsert(JiraTicket.__table__).values(**row)
-            stmt = stmt.on_duplicate_key_update(**{
-                k: v for k, v in row.items() if k != "ticket_key"
-            })
-            conn.execute(stmt)
+        stmt = mysql_upsert(JiraTicket.__table__).values(rows)
+        update_cols = {c.name: c for c in stmt.inserted if c.name != "ticket_key"}
+        stmt = stmt.on_duplicate_key_update(**update_cols)
+        conn.execute(stmt)
 
     logger.info(f"Loaded {len(rows)} tickets into MariaDB")
     return len(rows)
