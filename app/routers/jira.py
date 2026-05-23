@@ -15,7 +15,7 @@ async def sync_jira_tickets(
         issues = await fetch_jira_tickets(jql=jql, max_results=max_results)
         return {"synced": len(issues), "tickets": [i["key"] for i in issues]}
     except Exception as e:
-        raise HTTPException(status_code=502, detail=f"Jira API error: {e}")
+        raise HTTPException(status_code=502, detail=f"Jira API error: {e}") from e
 
 
 @router.get("/tickets")

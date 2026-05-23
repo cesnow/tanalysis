@@ -5,14 +5,13 @@
 """
 from datetime import datetime
 
-from prefect import flow, task, get_run_logger
+from prefect import flow, get_run_logger, task
 from pymongo import MongoClient
 from sqlalchemy.dialects.mysql import insert as mysql_upsert
 
 from app.config import settings
 from app.db.mariadb import Base, engine
 from app.models.jira_ticket import JiraTicket
-
 
 # ---------- helpers ----------
 

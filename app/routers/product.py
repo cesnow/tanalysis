@@ -1,11 +1,16 @@
 from datetime import datetime
+from typing import Annotated
+
 from fastapi import APIRouter, Depends, HTTPException, status
 from pydantic import BaseModel
 from sqlalchemy.orm import Session
+
 from app.db.mariadb import Base, engine, get_db
 from app.models.product import Product
 
 router = APIRouter(prefix="/products", tags=["Products"])
+
+DbSession = Annotated[Session, Depends(get_db)]
 
 
 # ---------- Pydantic schemas ----------
@@ -45,7 +50,7 @@ def _ensure_table():
 # ---------- Endpoints ----------
 
 @router.post("", response_model=ProductOut, status_code=status.HTTP_201_CREATED)
-def create_product(payload: ProductCreate, db: Session = Depends(get_db)):
+def create_product(payload: ProductCreate, db: DbSession):
     """建立新 Product，並定義其 Jira JQL 範圍。"""
     _ensure_table()
     if db.query(Product).filter(Product.name == payload.name).first():
@@ -58,14 +63,14 @@ def create_product(payload: ProductCreate, db: Session = Depends(get_db)):
 
 
 @router.get("", response_model=list[ProductOut])
-def list_products(db: Session = Depends(get_db)):
+def list_products(db: DbSession):
     """列出所有 Products。"""
     _ensure_table()
     return db.query(Product).order_by(Product.id).all()
 
 
 @router.get("/{product_id}", response_model=ProductOut)
-def get_product(product_id: int, db: Session = Depends(get_db)):
+def get_product(product_id: int, db: DbSession):
     """取得單一 Product。"""
     _ensure_table()
     product = db.query(Product).filter(Product.id == product_id).first()
@@ -75,7 +80,7 @@ def get_product(product_id: int, db: Session = Depends(get_db)):
 
 
 @router.put("/{product_id}", response_model=ProductOut)
-def update_product(product_id: int, payload: ProductUpdate, db: Session = Depends(get_db)):
+def update_product(product_id: int, payload: ProductUpdate, db: DbSession):
     """更新 Product（含 JQL）。"""
     _ensure_table()
     product = db.query(Product).filter(Product.id == product_id).first()
@@ -90,7 +95,7 @@ def update_product(product_id: int, payload: ProductUpdate, db: Session = Depend
 
 
 @router.delete("/{product_id}", status_code=status.HTTP_204_NO_CONTENT)
-def delete_product(product_id: int, db: Session = Depends(get_db)):
+def delete_product(product_id: int, db: DbSession):
     """刪除 Product。"""
     _ensure_table()
     product = db.query(Product).filter(Product.id == product_id).first()

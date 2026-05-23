@@ -1,6 +1,6 @@
 from datetime import datetime
 
-from sqlalchemy import Column, String, Text, DateTime, Integer
+from sqlalchemy import Column, DateTime, Integer, String, Text
 
 from app.db.mariadb import Base
 

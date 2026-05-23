@@ -1,8 +1,9 @@
 from fastapi import FastAPI, Query
+
+from app.flows.jira_clean_flow import jira_clean_flow, jira_product_clean_flow
+from app.flows.jira_sync_flow import jira_product_sync_flow, jira_sync_flow
 from app.routers.jira import router as jira_router
 from app.routers.product import router as product_router
-from app.flows.jira_sync_flow import jira_sync_flow, jira_product_sync_flow
-from app.flows.jira_clean_flow import jira_clean_flow, jira_product_clean_flow
 
 app = FastAPI(title="TAnalysis", description="Jira Analytics Pipeline")
 

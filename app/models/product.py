@@ -1,5 +1,7 @@
 from datetime import datetime
-from sqlalchemy import Column, String, Text, DateTime, Integer, Boolean
+
+from sqlalchemy import Boolean, Column, DateTime, Integer, String, Text
+
 from app.db.mariadb import Base
 
 
