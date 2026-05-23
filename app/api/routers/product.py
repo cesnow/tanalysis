@@ -2,52 +2,15 @@ from datetime import datetime
 from typing import Annotated
 
 from fastapi import APIRouter, Depends, HTTPException, status
-from pydantic import BaseModel
 from sqlalchemy.orm import Session
 
-from app.db.mariadb import Base, engine, get_db
+from app.api.dependencies import get_db
 from app.models.product import Product
+from app.schemas.product import ProductCreate, ProductOut, ProductUpdate
 
 router = APIRouter(prefix="/products", tags=["Products"])
 
 DbSession = Annotated[Session, Depends(get_db)]
-
-
-# ---------- Pydantic schemas ----------
-
-
-class ProductCreate(BaseModel):
-    name: str
-    description: str | None = None
-    jql: str
-    enabled: bool = True
-
-
-class ProductUpdate(BaseModel):
-    name: str | None = None
-    description: str | None = None
-    jql: str | None = None
-    enabled: bool | None = None
-
-
-class ProductOut(BaseModel):
-    id: int
-    name: str
-    description: str | None
-    jql: str
-    enabled: bool
-    created_at: datetime
-    updated_at: datetime
-
-    model_config = {"from_attributes": True}
-
-
-# ---------- Helpers ----------
-
-
-def _ensure_table():
-    Base.metadata.create_all(engine)
-
 
 # ---------- Endpoints ----------
 
@@ -55,7 +18,6 @@ def _ensure_table():
 @router.post("", response_model=ProductOut, status_code=status.HTTP_201_CREATED)
 def create_product(payload: ProductCreate, db: DbSession):
     """建立新 Product，並定義其 Jira JQL 範圍。"""
-    _ensure_table()
     if db.query(Product).filter(Product.name == payload.name).first():
         raise HTTPException(status_code=409, detail=f"Product '{payload.name}' already exists")
     product = Product(**payload.model_dump())
@@ -68,14 +30,12 @@ def create_product(payload: ProductCreate, db: DbSession):
 @router.get("", response_model=list[ProductOut])
 def list_products(db: DbSession):
     """列出所有 Products。"""
-    _ensure_table()
     return db.query(Product).order_by(Product.id).all()
 
 
 @router.get("/{product_id}", response_model=ProductOut)
 def get_product(product_id: int, db: DbSession):
     """取得單一 Product。"""
-    _ensure_table()
     product = db.query(Product).filter(Product.id == product_id).first()
     if not product:
         raise HTTPException(status_code=404, detail="Product not found")
@@ -85,7 +45,6 @@ def get_product(product_id: int, db: DbSession):
 @router.put("/{product_id}", response_model=ProductOut)
 def update_product(product_id: int, payload: ProductUpdate, db: DbSession):
     """更新 Product（含 JQL）。"""
-    _ensure_table()
     product = db.query(Product).filter(Product.id == product_id).first()
     if not product:
         raise HTTPException(status_code=404, detail="Product not found")
@@ -100,7 +59,6 @@ def update_product(product_id: int, payload: ProductUpdate, db: DbSession):
 @router.delete("/{product_id}", status_code=status.HTTP_204_NO_CONTENT)
 def delete_product(product_id: int, db: DbSession):
     """刪除 Product。"""
-    _ensure_table()
     product = db.query(Product).filter(Product.id == product_id).first()
     if not product:
         raise HTTPException(status_code=404, detail="Product not found")

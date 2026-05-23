@@ -11,8 +11,9 @@ import requests
 from prefect import flow, get_run_logger, task
 from pymongo import MongoClient
 
-from app.config import settings
-from app.db.mariadb import Base, SessionLocal, engine
+from app.core.config import settings
+from app.db.base import Base
+from app.db.database import SessionLocal, engine
 from app.models.product import Product
 
 ISSUE_TYPES = ["Bug", "Epic", "Task", "Sub-task"]

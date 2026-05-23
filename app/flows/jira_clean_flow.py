@@ -10,8 +10,9 @@ from prefect import flow, get_run_logger, task
 from pymongo import MongoClient
 from sqlalchemy.dialects.mysql import insert as mysql_upsert
 
-from app.config import settings
-from app.db.mariadb import Base, engine
+from app.core.config import settings
+from app.db.base import Base
+from app.db.database import engine
 from app.models.jira_ticket import JiraTicket
 
 # ---------- helpers ----------
@@ -129,7 +130,7 @@ def jira_clean_flow() -> list[dict]:
     """對所有 enabled products 執行 MongoDB → MariaDB 資料清洗。
     通常由 jira_sync_flow 自動觸發，亦可手動呼叫。
     """
-    from app.db.mariadb import SessionLocal
+    from app.db.database import SessionLocal
     from app.models.product import Product
 
     logger = get_run_logger()

@@ -2,7 +2,7 @@ from datetime import datetime
 
 import httpx
 
-from app.config import settings
+from app.core.config import settings
 from app.db.mongodb import jira_tickets_collection
 
 

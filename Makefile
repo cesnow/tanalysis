@@ -1,4 +1,4 @@
-.PHONY: format lint check
+.PHONY: format lint check up dev down
 
 # Best command to auto-format and fix everything
 format:
@@ -14,3 +14,15 @@ lint:
 check:
 	ruff format --check .
 	ruff check .
+
+# Start background services (MariaDB, MongoDB, MinIO)
+docker-up:
+	docker compose up -d
+
+# Stop background services
+down:
+	docker compose down
+
+# Run the FastAPI application in development mode
+dev:
+	python main.py

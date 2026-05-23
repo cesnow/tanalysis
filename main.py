@@ -1,47 +1,34 @@
-from fastapi import FastAPI, Query
+from contextlib import asynccontextmanager
 
-from app.flows.jira_clean_flow import jira_clean_flow, jira_product_clean_flow
-from app.flows.jira_sync_flow import jira_product_sync_flow, jira_sync_flow
-from app.routers.jira import router as jira_router
-from app.routers.product import router as product_router
+from fastapi import FastAPI
+from prometheus_fastapi_instrumentator import Instrumentator
 
-app = FastAPI(title="TAnalysis", description="Jira Analytics Pipeline")
+from app.api.routers.flows import router as flows_router
+from app.api.routers.health import router as health_router
+from app.api.routers.jira import router as jira_router
+from app.api.routers.product import router as product_router
+from app.db.base import Base
+from app.db.database import engine
 
+
+@asynccontextmanager
+async def lifespan(app: FastAPI):
+    # Setup - run DB migrations / create tables
+    Base.metadata.create_all(engine)
+    yield
+    # Teardown
+    pass
+
+
+app = FastAPI(title="TAnalysis", description="Jira Analytics Pipeline", lifespan=lifespan)
+
+app.include_router(health_router)
 app.include_router(jira_router)
 app.include_router(product_router)
+app.include_router(flows_router)
 
-
-@app.get("/")
-async def root():
-    return {"message": "Hello World"}
-
-
-@app.post("/flows/jira-sync", tags=["Flows"])
-async def trigger_jira_sync():
-    """觸發所有 enabled products 的 Jira 同步 flow（Jira API → MongoDB），完成後自動觸發清洗寫入 MariaDB。每小時排程亦執行此 flow。"""
-    results = jira_sync_flow()
-    return {"status": "completed", "results": results}
-
-
-@app.post("/flows/jira-sync/{product_id}", tags=["Flows"])
-async def trigger_jira_product_sync(product_id: int, product_name: str = Query(...), jql: str = Query(...)):
-    """手動觸發單一 product 的 Jira 同步 flow（Jira API → MongoDB）。"""
-    result = jira_product_sync_flow(product_id=product_id, product_name=product_name, jql=jql)
-    return {"status": "completed", "result": result}
-
-
-@app.post("/flows/jira-clean", tags=["Flows"])
-async def trigger_jira_clean():
-    """手動觸發所有 enabled products 的 Jira 清洗 flow（MongoDB → MariaDB）。"""
-    results = jira_clean_flow()
-    return {"status": "completed", "results": results}
-
-
-@app.post("/flows/jira-clean/{product_id}", tags=["Flows"])
-async def trigger_jira_product_clean(product_id: int, product_name: str = Query(...)):
-    """手動觸發單一 product 的 Jira 清洗 flow（MongoDB → MariaDB）。"""
-    result = jira_product_clean_flow(product_id=product_id, product_name=product_name)
-    return {"status": "completed", "result": result}
+# Enable Prometheus Metrics
+Instrumentator().instrument(app).expose(app)
 
 
 if __name__ == "__main__":
