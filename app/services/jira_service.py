@@ -37,15 +37,11 @@ async def fetch_jira_tickets(jql: str | None = None, max_results: int = 50) -> l
     return issues
 
 
-async def get_tickets_from_mongo(
-    project_key: str | None = None, limit: int = 50
-) -> list[dict]:
+async def get_tickets_from_mongo(project_key: str | None = None, limit: int = 50) -> list[dict]:
     """Read cached tickets from MongoDB."""
     query = {}
     if project_key:
         query["fields.project.key"] = project_key
 
-    cursor = jira_tickets_collection.find(query, {"_id": 0}).sort(
-        "_fetched_at", -1
-    ).limit(limit)
+    cursor = jira_tickets_collection.find(query, {"_id": 0}).sort("_fetched_at", -1).limit(limit)
     return await cursor.to_list(length=limit)

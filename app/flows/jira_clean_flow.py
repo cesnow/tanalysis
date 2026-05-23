@@ -3,6 +3,7 @@
 此 flow 由 jira_sync_flow 在每個 product 同步完成後自動觸發。
 亦可透過 API endpoint 手動觸發。
 """
+
 from datetime import datetime
 
 from prefect import flow, get_run_logger, task
@@ -14,6 +15,7 @@ from app.db.mariadb import Base, engine
 from app.models.jira_ticket import JiraTicket
 
 # ---------- helpers ----------
+
 
 def _parse_dt(value: str | None) -> datetime | None:
     if not value:
@@ -36,6 +38,7 @@ def _safe(fields: dict, *keys, default=None):
 
 # ---------- tasks ----------
 
+
 @task(name="extract_jira_from_mongodb")
 def extract_jira_from_mongodb(product_id: int, product_name: str) -> list[dict]:
     """從 MongoDB jira_tickets collection 讀取指定 product 的 raw issues。"""
@@ -45,10 +48,12 @@ def extract_jira_from_mongodb(product_id: int, product_name: str) -> list[dict]:
     db = client[settings.mongodb_database]
     collection = db["jira_tickets"]
 
-    docs = list(collection.find(
-        {"_product_id": product_id},
-        {"_id": 0},
-    ))
+    docs = list(
+        collection.find(
+            {"_product_id": product_id},
+            {"_id": 0},
+        )
+    )
     client.close()
 
     logger.info(f"[{product_name}] Extracted {len(docs)} issues from MongoDB")
@@ -69,22 +74,24 @@ def clean_and_load_jira_to_mariadb(product_name: str, docs: list[dict]) -> int:
     rows = []
     for issue in docs:
         fields = issue.get("fields", {})
-        rows.append({
-            "ticket_key": issue.get("key"),
-            "summary": _safe(fields, "summary") or "",
-            "status": _safe(fields, "status", "name") or "",
-            "issue_type": _safe(fields, "issuetype", "name") or "",
-            "priority": _safe(fields, "priority", "name") or "",
-            "assignee": _safe(fields, "assignee", "displayName") or "",
-            "reporter": _safe(fields, "reporter", "displayName") or "",
-            "project_key": _safe(fields, "project", "key") or "",
-            "created_at": _parse_dt(fields.get("created")),
-            "updated_at": _parse_dt(fields.get("updated")),
-            "resolved_at": _parse_dt(fields.get("resolutiondate")),
-            "description": str(_safe(fields, "description") or ""),
-            "labels": ",".join(fields.get("labels", [])),
-            "synced_at": datetime.utcnow(),
-        })
+        rows.append(
+            {
+                "ticket_key": issue.get("key"),
+                "summary": _safe(fields, "summary") or "",
+                "status": _safe(fields, "status", "name") or "",
+                "issue_type": _safe(fields, "issuetype", "name") or "",
+                "priority": _safe(fields, "priority", "name") or "",
+                "assignee": _safe(fields, "assignee", "displayName") or "",
+                "reporter": _safe(fields, "reporter", "displayName") or "",
+                "project_key": _safe(fields, "project", "key") or "",
+                "created_at": _parse_dt(fields.get("created")),
+                "updated_at": _parse_dt(fields.get("updated")),
+                "resolved_at": _parse_dt(fields.get("resolutiondate")),
+                "description": str(_safe(fields, "description") or ""),
+                "labels": ",".join(fields.get("labels", [])),
+                "synced_at": datetime.utcnow(),
+            }
+        )
 
     # 過濾掉 ticket_key 為空的資料
     rows = [r for r in rows if r.get("ticket_key")]
@@ -105,6 +112,7 @@ def clean_and_load_jira_to_mariadb(product_name: str, docs: list[dict]) -> int:
 
 # ---------- per-product sub-flow ----------
 
+
 @flow(name="jira_product_clean_flow", log_prints=True)
 def jira_product_clean_flow(product_id: int, product_name: str) -> dict:
     """針對單一 product 執行 MongoDB → MariaDB 資料清洗。"""
@@ -114,6 +122,7 @@ def jira_product_clean_flow(product_id: int, product_name: str) -> dict:
 
 
 # ---------- main flow（可手動觸發全部清洗） ----------
+
 
 @flow(name="jira_clean_flow", log_prints=True)
 def jira_clean_flow() -> list[dict]:

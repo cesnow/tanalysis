@@ -7,6 +7,7 @@ from app.db.mariadb import Base
 
 class Product(Base):
     """Product dimension table: defines a product and its Jira JQL scope."""
+
     __tablename__ = "products"
 
     id = Column(Integer, primary_key=True, autoincrement=True)

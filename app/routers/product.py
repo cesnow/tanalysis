@@ -15,6 +15,7 @@ DbSession = Annotated[Session, Depends(get_db)]
 
 # ---------- Pydantic schemas ----------
 
+
 class ProductCreate(BaseModel):
     name: str
     description: str | None = None
@@ -43,11 +44,13 @@ class ProductOut(BaseModel):
 
 # ---------- Helpers ----------
 
+
 def _ensure_table():
     Base.metadata.create_all(engine)
 
 
 # ---------- Endpoints ----------
+
 
 @router.post("", response_model=ProductOut, status_code=status.HTTP_201_CREATED)
 def create_product(payload: ProductCreate, db: DbSession):

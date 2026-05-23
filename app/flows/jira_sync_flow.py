@@ -3,6 +3,7 @@
 排程：每小時執行一次（由 Prefect deployment 設定 interval=3600）。
 完成後自動觸發 jira_clean_flow 進行資料清洗寫入 MariaDB。
 """
+
 import base64
 from datetime import datetime
 
@@ -19,10 +20,9 @@ ISSUE_TYPES = ["Bug", "Epic", "Task", "Sub-task"]
 
 # ---------- helpers ----------
 
+
 def _jira_headers() -> dict:
-    token = base64.b64encode(
-        f"{settings.jira_email}:{settings.jira_api_token}".encode()
-    ).decode()
+    token = base64.b64encode(f"{settings.jira_email}:{settings.jira_api_token}".encode()).decode()
     return {
         "Authorization": f"Basic {token}",
         "Accept": "application/json",
@@ -36,6 +36,7 @@ def _build_jql(base_jql: str) -> str:
 
 
 # ---------- tasks ----------
+
 
 @task(name="fetch_jira_issues_by_jql", retries=2, retry_delay_seconds=30)
 def fetch_jira_issues_by_jql(product_name: str, jql: str) -> list[dict]:
@@ -112,6 +113,7 @@ def upsert_jira_issues_to_mongodb(product_name: str, product_id: int, issues: li
 
 # ---------- per-product sub-flow ----------
 
+
 @flow(name="jira_product_sync_flow", log_prints=True)
 def jira_product_sync_flow(product_id: int, product_name: str, jql: str) -> dict:
     """針對單一 product 執行 Jira 抓取並寫入 MongoDB。"""
@@ -121,6 +123,7 @@ def jira_product_sync_flow(product_id: int, product_name: str, jql: str) -> dict
 
 
 # ---------- main flow（每小時排程） ----------
+
 
 @flow(name="jira_sync_flow", log_prints=True)
 def jira_sync_flow() -> list[dict]:
