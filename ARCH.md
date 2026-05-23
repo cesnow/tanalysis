@@ -1,7 +1,7 @@
 ```mermaid
 flowchart TD
     %% Node Definitions
-    DataSource["Jira API / Azure DevOps API"]
+    DataSource["Jira API"]
 
     subgraph StagingLayer ["Extraction - Staging Area (Hot Data)"]
         MongoDB[("MongoDB<br>(Raw JSON, Recent 1 Year)")]
