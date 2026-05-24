@@ -17,7 +17,6 @@ from app.db.mongodb import jira_tickets_collection
 from app.flows.jira_clean_flow import jira_product_clean_flow
 from app.repositories import jira_mongo_repo, product_repo
 
-
 # ---------- helpers ----------
 
 

@@ -1,6 +1,6 @@
 """Repository for Jira raw tickets (MongoDB / pymongo)."""
 
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 
 from pymongo.collection import Collection
 
@@ -14,7 +14,7 @@ def upsert_many(
     """Upsert Jira issues into MongoDB, optionally tagging with product metadata."""
     if not issues:
         return 0
-    fetched_at = datetime.now(timezone.utc).isoformat()
+    fetched_at = datetime.now(UTC).isoformat()
     for issue in issues:
         issue["_fetched_at"] = fetched_at
         if product_id is not None:

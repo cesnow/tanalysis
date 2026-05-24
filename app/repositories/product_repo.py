@@ -1,6 +1,6 @@
 """Repository for Product (MariaDB / SQLAlchemy)."""
 
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 
 from sqlalchemy.orm import Session
 
@@ -35,7 +35,7 @@ def create(db: Session, payload: ProductCreate) -> Product:
 def update(db: Session, product: Product, payload: ProductUpdate) -> Product:
     for field, value in payload.model_dump(exclude_none=True).items():
         setattr(product, field, value)
-    product.updated_at = datetime.now(timezone.utc).replace(tzinfo=None)  # type: ignore[assignment]
+    product.updated_at = datetime.now(UTC).replace(tzinfo=None)  # type: ignore[assignment]
     db.commit()
     db.refresh(product)
     return product

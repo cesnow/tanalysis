@@ -4,7 +4,7 @@ This flow is automatically triggered by jira_sync_flow after each product sync c
 It can also be triggered manually via an API endpoint.
 """
 
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 
 from prefect import flow, get_run_logger, task
 
@@ -76,7 +76,7 @@ def clean_and_load_jira_to_mariadb(product_name: str, docs: list[dict]) -> int:
                 "resolved_at": _parse_dt(fields.get("resolutiondate")),
                 "description": str(_safe(fields, "description") or ""),
                 "labels": ",".join(fields.get("labels", [])),
-                "synced_at": datetime.now(timezone.utc).replace(tzinfo=None),
+                "synced_at": datetime.now(UTC).replace(tzinfo=None),
             }
         )
 
