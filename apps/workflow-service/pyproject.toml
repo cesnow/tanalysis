@@ -1,0 +1,18 @@
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[project]
+name = "workflow-service"
+version = "0.1.0"
+requires-python = ">=3.11"
+dependencies = [
+    "shared",
+    "prefect",
+]
+
+[tool.uv.sources]
+shared = { workspace = true }
+
+[tool.hatch.build.targets.wheel]
+packages = ["flows"]

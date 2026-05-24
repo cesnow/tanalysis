@@ -1,11 +1,11 @@
 from logging.config import fileConfig
 
+import models  # noqa: F401 - registers all ORM models with Base.metadata for autogenerate
+from db import DatabaseModel
 from sqlalchemy import engine_from_config, pool
 
-import app.models  # noqa: F401 - registers all ORM models with Base.metadata for autogenerate
 from alembic import context
-from app.config.settings import settings
-from app.db.mariadb import DatabaseModel
+from shared.config.settings import settings
 
 # this is the Alembic Config object, which provides
 # access to the values within the .ini file in use.

@@ -1,0 +1,31 @@
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[project]
+name = "shared"
+version = "0.1.0"
+requires-python = ">=3.11"
+dependencies = [
+    "pydantic-settings",
+    "pymongo",
+    "sqlalchemy",
+    "pymysql",
+    "pytz",
+    "python-dateutil",
+    "requests",
+    "requests-oauthlib",
+    "PyYAML",
+    "mysql-connector-python",
+    "minio",
+    "cachetools",
+    "psutil",
+    "aiohttp",
+    "python-dotenv",
+    "alembic",
+    "pandas",
+    "structlog",
+]
+
+[tool.hatch.build.targets.wheel]
+packages = ["shared"]

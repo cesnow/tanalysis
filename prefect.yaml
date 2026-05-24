@@ -55,11 +55,8 @@ definitions:
 deployments:
 
   # ── jira-sync ──────────────────────────────────────────────────────────────
-  # Reads all enabled Products from MariaDB, pages through Jira REST API via
-  # JQL, and upserts raw issues into MongoDB.  After each product, it
-  # automatically calls jira-clean to push cleaned data into MariaDB.
   - name: jira-sync
-    entrypoint: app/flows/jira_sync_flow.py:jira_sync_flow
+    entrypoint: apps/workflow-service/flows/jira_sync_flow.py:jira_sync_flow
     description: >
       Hourly ETL — fetches Jira issues for every enabled Product via JQL and
       upserts raw data into MongoDB. Triggers jira-clean after each product.
@@ -71,13 +68,20 @@ deployments:
     concurrency_limit: *single_run
     work_pool: *local_process
 
+  # ── jira-product-sync ──────────────────────────────────────────────────────
+  - name: jira-product-sync
+    entrypoint: apps/workflow-service/flows/jira_sync_flow.py:jira_product_sync_flow
+    description: Fetches Jira issues for a single product via JQL.
+    tags:
+      - jira
+      - sync
+      - product
+    concurrency_limit: *single_run
+    work_pool: *local_process
+
   # ── jira-clean ─────────────────────────────────────────────────────────────
-  # Reads raw Jira documents from MongoDB, applies field-level cleaning, and
-  # bulk-upserts structured rows into MariaDB using ON DUPLICATE KEY UPDATE.
-  # Normally chained after jira-sync; can also be triggered manually via the
-  # API endpoint POST /flows/jira-clean.
   - name: jira-clean
-    entrypoint: app/flows/jira_clean_flow.py:jira_clean_flow
+    entrypoint: apps/workflow-service/flows/jira_clean_flow.py:jira_clean_flow
     description: >
       On-demand ETL — cleans raw Jira data from MongoDB and upserts structured
       rows into MariaDB. Called automatically by jira-sync or triggered manually.
@@ -85,6 +89,16 @@ deployments:
       - jira
       - clean
       - etl
-    # No schedule — runs on-demand only.
+    concurrency_limit: *single_run
+    work_pool: *local_process
+
+  # ── jira-product-clean ─────────────────────────────────────────────────────
+  - name: jira-product-clean
+    entrypoint: apps/workflow-service/flows/jira_clean_flow.py:jira_product_clean_flow
+    description: Cleans raw Jira data from MongoDB for a single product.
+    tags:
+      - jira
+      - clean
+      - product
     concurrency_limit: *single_run
     work_pool: *local_process
