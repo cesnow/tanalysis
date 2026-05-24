@@ -56,7 +56,7 @@ deployments:
 
   # ── jira-sync ──────────────────────────────────────────────────────────────
   - name: jira-sync
-    entrypoint: apps/workflow-service/flows/jira_sync_flow.py:jira_sync_flow
+    entrypoint: apps/workflow-service/src/flows/jira_sync_flow.py:jira_sync_flow
     description: >
       Hourly ETL — fetches Jira issues for every enabled Product via JQL and
       upserts raw data into MongoDB. Triggers jira-clean after each product.
@@ -70,7 +70,7 @@ deployments:
 
   # ── jira-product-sync ──────────────────────────────────────────────────────
   - name: jira-product-sync
-    entrypoint: apps/workflow-service/flows/jira_sync_flow.py:jira_product_sync_flow
+    entrypoint: apps/workflow-service/src/flows/jira_sync_flow.py:jira_product_sync_flow
     description: Fetches Jira issues for a single product via JQL.
     tags:
       - jira
@@ -81,7 +81,7 @@ deployments:
 
   # ── jira-clean ─────────────────────────────────────────────────────────────
   - name: jira-clean
-    entrypoint: apps/workflow-service/flows/jira_clean_flow.py:jira_clean_flow
+    entrypoint: apps/workflow-service/src/flows/jira_clean_flow.py:jira_clean_flow
     description: >
       On-demand ETL — cleans raw Jira data from MongoDB and upserts structured
       rows into MariaDB. Called automatically by jira-sync or triggered manually.
@@ -94,7 +94,7 @@ deployments:
 
   # ── jira-product-clean ─────────────────────────────────────────────────────
   - name: jira-product-clean
-    entrypoint: apps/workflow-service/flows/jira_clean_flow.py:jira_product_clean_flow
+    entrypoint: apps/workflow-service/src/flows/jira_clean_flow.py:jira_product_clean_flow
     description: Cleans raw Jira data from MongoDB for a single product.
     tags:
       - jira

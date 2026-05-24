@@ -19,5 +19,7 @@ dependencies = [
 [tool.uv.sources]
 shared = { workspace = true }
 
+
+
 [tool.hatch.build.targets.wheel]
-packages = ["routes"]
+packages = ["src/main.py", "src/routes"]

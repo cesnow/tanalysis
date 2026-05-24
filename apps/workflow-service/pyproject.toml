@@ -14,5 +14,7 @@ dependencies = [
 [tool.uv.sources]
 shared = { workspace = true }
 
+
+
 [tool.hatch.build.targets.wheel]
-packages = ["flows"]
+packages = ["src/flows", "src/tasks"]

@@ -4,8 +4,6 @@ version = "0.1.0"
 description = "Jira Analytics Pipeline Workspace"
 requires-python = ">=3.11"
 dependencies = [
-    "api-service",
-    "workflow-service",
     "shared",
     "common>=0.1.2",
 ]
@@ -23,8 +21,6 @@ dev = [
 members = ["apps/*", "packages/*"]
 
 [tool.uv.sources]
-api-service = { workspace = true }
-workflow-service = { workspace = true }
 shared = { workspace = true }
 
 [tool.ruff]

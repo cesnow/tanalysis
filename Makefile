@@ -28,7 +28,7 @@ down:
 
 # Run the FastAPI application in development mode
 dev:
-	uv run python apps/api-service/main.py
+	uv run python apps/api-service/src/main.py
 
 # ── Database Migrations ───────────────────────────────────────────────────────
 
