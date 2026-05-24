@@ -11,7 +11,7 @@ DatabaseModel = declarative_base()
 
 
 def get_db() -> Generator[Session, None, None]:
-    """FastAPI dependency: yields a SQLAlchemy session and closes it after the request."""
+    """FastAPI dependency: yields an SQLAlchemy session and closes it after the request."""
     db = SessionLocal()
     try:
         yield db
