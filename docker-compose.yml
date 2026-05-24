@@ -74,6 +74,16 @@ services:
       exit 0;
       "
 
+  redis:
+    image: redis:7-alpine
+    container_name: tanalysis_redis
+    restart: unless-stopped
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis_data:/data
+    command: redis-server --save 60 1 --loglevel warning
+
   phpmyadmin:
     image: phpmyadmin:latest
     container_name: tanalysis_phpmyadmin
@@ -91,3 +101,4 @@ volumes:
   mariadb_data:
   mongodb_data:
   minio_data:
+  redis_data:
