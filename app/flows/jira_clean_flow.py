@@ -8,7 +8,7 @@ from datetime import UTC, datetime
 
 from prefect import flow, get_run_logger, task
 
-from app.db.database import SessionLocal, engine, init_db
+from app.db.mariadb import SessionLocal, engine, init_db
 from app.db.mongodb import jira_tickets_collection
 from app.repositories import jira_mongo_repo, jira_ticket_repo, product_repo
 

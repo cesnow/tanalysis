@@ -11,7 +11,7 @@ from prefect import flow, get_run_logger, task
 
 from app.config.settings import settings
 from app.core.constants import JIRA_ISSUE_TYPES
-from app.db.database import SessionLocal, init_db
+from app.db.mariadb import SessionLocal, init_db
 from app.db.mongodb import jira_tickets_collection
 from app.flows.jira_clean_flow import jira_product_clean_flow
 from app.repositories import jira_mongo_repo, product_repo

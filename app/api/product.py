@@ -3,7 +3,7 @@ from typing import Annotated
 from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.orm import Session
 
-from app.db.database import get_db
+from app.db.mariadb import get_db
 from app.repositories import product_repo
 from app.schemas.product import ProductCreate, ProductOut, ProductUpdate
 

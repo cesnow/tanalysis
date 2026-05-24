@@ -4,7 +4,7 @@ from contextlib import asynccontextmanager
 
 from fastapi import FastAPI
 
-from app.db.database import engine, init_db
+from app.db.mariadb import engine, init_db
 
 
 @asynccontextmanager
