@@ -11,8 +11,7 @@ from prefect import flow, get_run_logger, task
 
 from app.config.settings import settings
 from app.core.constants import JIRA_ISSUE_TYPES
-from app.db.base import Base
-from app.db.database import SessionLocal, engine
+from app.db.database import SessionLocal, init_db
 from app.db.mongodb import jira_tickets_collection
 from app.flows.jira_clean_flow import jira_product_clean_flow
 from app.repositories import jira_mongo_repo, product_repo
@@ -112,7 +111,7 @@ def jira_sync_flow() -> list[dict]:
     """
     logger = get_run_logger()
 
-    Base.metadata.create_all(engine)
+    init_db()
     with SessionLocal() as db:
         products = product_repo.list_enabled(db)
         product_list = [{"id": p.id, "name": p.name, "jql": p.jql} for p in products]

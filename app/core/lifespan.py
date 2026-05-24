@@ -4,14 +4,13 @@ from contextlib import asynccontextmanager
 
 from fastapi import FastAPI
 
-from app.db.base import Base
-from app.db.database import engine
+from app.db.database import engine, init_db
 
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     """Create DB tables on startup (idempotent). Run Alembic for schema migrations."""
-    Base.metadata.create_all(bind=engine)
+    init_db()
     yield
     # Teardown: close connection pool
     engine.dispose()

@@ -2,10 +2,10 @@ from datetime import UTC, datetime
 
 from sqlalchemy import Column, DateTime, Integer, String, Text
 
-from app.db.base import Base
+from app.db.base import DatabaseModel
 
 
-class JiraTicket(Base):
+class JiraTicket(DatabaseModel):
     """Fact table for Jira tickets stored in MariaDB."""
 
     __tablename__ = "jira_tickets"

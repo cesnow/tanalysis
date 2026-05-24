@@ -8,8 +8,7 @@ from datetime import UTC, datetime
 
 from prefect import flow, get_run_logger, task
 
-from app.db.base import Base
-from app.db.database import SessionLocal, engine
+from app.db.database import SessionLocal, engine, init_db
 from app.db.mongodb import jira_tickets_collection
 from app.repositories import jira_mongo_repo, jira_ticket_repo, product_repo
 
@@ -56,7 +55,7 @@ def clean_and_load_jira_to_mariadb(product_name: str, docs: list[dict]) -> int:
         logger.info(f"[{product_name}] No issues to clean and load")
         return 0
 
-    Base.metadata.create_all(engine)
+    init_db()
 
     rows = []
     for issue in docs:
@@ -112,7 +111,7 @@ def jira_clean_flow() -> list[dict]:
     """
     logger = get_run_logger()
 
-    Base.metadata.create_all(engine)
+    init_db()
     with SessionLocal() as db:
         products = product_repo.list_enabled(db)
         product_list = [{"id": p.id, "name": p.name} for p in products]

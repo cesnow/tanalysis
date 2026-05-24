@@ -5,7 +5,7 @@ from sqlalchemy import engine_from_config, pool
 import app.models  # noqa: F401 - registers all ORM models with Base.metadata for autogenerate
 from alembic import context
 from app.config.settings import settings
-from app.db.base import Base
+from app.db.base import DatabaseModel
 
 # this is the Alembic Config object, which provides
 # access to the values within the .ini file in use.
@@ -18,11 +18,7 @@ config.set_main_option("sqlalchemy.url", settings.mariadb_url)
 if config.config_file_name is not None:
     fileConfig(config.config_file_name)
 
-# add your model's MetaData object here
-# for 'autogenerate' support
-# from myapp import mymodel
-# target_metadata = mymodel.Base.metadata
-target_metadata = Base.metadata
+target_metadata = DatabaseModel.metadata
 
 # other values from the config, defined by the needs of env.py,
 # can be acquired:

@@ -2,10 +2,10 @@ from datetime import UTC, datetime
 
 from sqlalchemy import Boolean, Column, DateTime, Integer, String, Text
 
-from app.db.base import Base
+from app.db.base import DatabaseModel
 
 
-class Product(Base):
+class Product(DatabaseModel):
     """Product dimension table: defines a product and its Jira JQL scope."""
 
     __tablename__ = "products"
