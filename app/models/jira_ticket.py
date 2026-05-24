@@ -2,7 +2,7 @@ from datetime import UTC, datetime
 
 from sqlalchemy import Column, DateTime, Integer, String, Text
 
-from app.db.base import DatabaseModel
+from app.db.mariadb import DatabaseModel
 
 
 class JiraTicket(DatabaseModel):
