@@ -14,10 +14,11 @@ class _MariaDBConfig:
 
 @dataclass(frozen=True)
 class _MongoDBConfig:
+    enabled: bool
     url: str
     database: str
     server_selection_timeout_ms: int = 5_000
 
 
 mariadb = _MariaDBConfig(url=settings.mariadb_url)
-mongodb = _MongoDBConfig(url=settings.mongodb_url, database=settings.mongodb_database)
+mongodb = _MongoDBConfig(enabled=settings.mongodb_enabled, url=settings.mongodb_url, database=settings.mongodb_database)

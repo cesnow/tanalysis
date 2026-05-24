@@ -17,6 +17,7 @@ class Settings(BaseSettings):
     jira_project_key: str = ""
 
     # ── MongoDB ───────────────────────────────────────────────────────────────
+    mongodb_enabled: bool = True
     mongodb_url: str = "mongodb://localhost:27017"
     mongodb_database: str = "tanalysis"
 
