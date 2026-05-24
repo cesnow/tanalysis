@@ -1,6 +1,6 @@
 """Database connection configuration — typed config objects consumed by app/db/."""
 
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 
 from shared.config.settings import settings
 
@@ -18,7 +18,7 @@ class _MongoDBConfig:
     url: str
     database: str
     server_selection_timeout_ms: int = 5_000
-    replica_set: str | None = None
+    additional_options: dict[str, str] = field(default_factory=dict)
 
 
 @dataclass(frozen=True)
@@ -32,6 +32,6 @@ mongodb = _MongoDBConfig(
     enabled=settings.mongodb_enabled,
     url=settings.mongodb_url,
     database=settings.mongodb_database,
-    replica_set=settings.mongodb_replica_set,
+    additional_options=settings.mongodb_additional_options,
 )
 redis = _RedisConfig(enabled=settings.redis_enabled, url=settings.redis_url)

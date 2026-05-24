@@ -20,7 +20,7 @@ class Settings(BaseSettings):
     mongodb_enabled: bool = True
     mongodb_url: str = "mongodb://localhost:27017"
     mongodb_database: str = "tanalysis"
-    mongodb_replica_set: str | None = None
+    mongodb_additional_options: dict[str, str] = {}
 
     # ── Redis ─────────────────────────────────────────────────────────────────
     redis_enabled: bool = True

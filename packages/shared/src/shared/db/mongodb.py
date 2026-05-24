@@ -11,8 +11,8 @@ jira_tickets_collection: Collection | None = None
 
 if mongodb.enabled:
     kwargs: dict[str, Any] = {"serverSelectionTimeoutMS": mongodb.server_selection_timeout_ms}
-    if mongodb.replica_set:
-        kwargs["replicaSet"] = mongodb.replica_set
+    if mongodb.additional_options:
+        kwargs.update(mongodb.additional_options)
 
     client = MongoClient(mongodb.url, **kwargs)
     db = client[mongodb.database]
