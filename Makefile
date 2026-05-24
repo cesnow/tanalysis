@@ -1,4 +1,5 @@
 .PHONY: format lint check docker-up down dev \
+        db-migrate db-upgrade \
         prefect-server prefect-pool prefect-pool-inspect \
         prefect-worker prefect-deploy prefect-deploy-sync prefect-deploy-clean
 
@@ -28,6 +29,16 @@ down:
 # Run the FastAPI application in development mode
 dev:
 	python main.py
+
+# ── Database Migrations ───────────────────────────────────────────────────────
+
+# Auto-generate a new migration script based on changes in your models
+db-migrate:
+	alembic revision --autogenerate -m "auto-migration"
+
+# Apply all pending migrations to the database
+db-upgrade:
+	alembic upgrade head
 
 # ── Prefect ───────────────────────────────────────────────────────────────────
 

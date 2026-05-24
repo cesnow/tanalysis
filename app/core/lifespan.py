@@ -4,13 +4,12 @@ from contextlib import asynccontextmanager
 
 from fastapi import FastAPI
 
-from app.db.mariadb import engine, init_db
+from app.db.mariadb import engine
 
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
-    """Create DB tables on startup (idempotent). Run Alembic for schema migrations."""
-    init_db()
+    """Application lifespan: manages teardown of DB connections."""
     yield
     # Teardown: close connection pool
     engine.dispose()
