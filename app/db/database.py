@@ -1,7 +1,18 @@
+from collections.abc import Generator
+
 from sqlalchemy import create_engine
-from sqlalchemy.orm import sessionmaker
+from sqlalchemy.orm import Session, sessionmaker
 
-from app.core.config import settings
+from app.config.database import mariadb
 
-engine = create_engine(settings.mariadb_url, echo=False)
+engine = create_engine(mariadb.url, echo=mariadb.echo, pool_recycle=mariadb.pool_recycle)
 SessionLocal = sessionmaker(bind=engine, autocommit=False, autoflush=False)
+
+
+def get_db() -> Generator[Session, None, None]:
+    """FastAPI dependency: yields a SQLAlchemy session and closes it after the request."""
+    db = SessionLocal()
+    try:
+        yield db
+    finally:
+        db.close()

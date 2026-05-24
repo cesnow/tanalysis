@@ -1,8 +1,12 @@
-from motor.motor_asyncio import AsyncIOMotorClient
+from pymongo import MongoClient
+from pymongo.collection import Collection
 
-from app.core.config import settings
+from app.config.database import mongodb
 
-client = AsyncIOMotorClient(settings.mongodb_url)
-db = client[settings.mongodb_database]
+client: MongoClient = MongoClient(
+    mongodb.url,
+    serverSelectionTimeoutMS=mongodb.server_selection_timeout_ms,
+)
+db = client[mongodb.database]
 
-jira_tickets_collection = db["jira_tickets"]
+jira_tickets_collection: Collection = db["jira_tickets"]

@@ -1,19 +1,17 @@
-"""Prefect flow: 從 MongoDB 讀取 Jira raw data，清洗後 upsert 進 MariaDB。
+"""Prefect flow: Read Jira raw data from MongoDB, clean it, and upsert into MariaDB.
 
-此 flow 由 jira_sync_flow 在每個 product 同步完成後自動觸發。
-亦可透過 API endpoint 手動觸發。
+This flow is automatically triggered by jira_sync_flow after each product sync completes.
+It can also be triggered manually via an API endpoint.
 """
 
-from datetime import datetime
+from datetime import datetime, timezone
 
 from prefect import flow, get_run_logger, task
-from pymongo import MongoClient
-from sqlalchemy.dialects.mysql import insert as mysql_upsert
 
-from app.core.config import settings
 from app.db.base import Base
-from app.db.database import engine
-from app.models.jira_ticket import JiraTicket
+from app.db.database import SessionLocal, engine
+from app.db.mongodb import jira_tickets_collection
+from app.repositories import jira_mongo_repo, jira_ticket_repo, product_repo
 
 # ---------- helpers ----------
 
@@ -42,28 +40,16 @@ def _safe(fields: dict, *keys, default=None):
 
 @task(name="extract_jira_from_mongodb")
 def extract_jira_from_mongodb(product_id: int, product_name: str) -> list[dict]:
-    """從 MongoDB jira_tickets collection 讀取指定 product 的 raw issues。"""
+    """Read raw issues for the specified product from the MongoDB jira_tickets collection."""
     logger = get_run_logger()
-
-    client = MongoClient(settings.mongodb_url)
-    db = client[settings.mongodb_database]
-    collection = db["jira_tickets"]
-
-    docs = list(
-        collection.find(
-            {"_product_id": product_id},
-            {"_id": 0},
-        )
-    )
-    client.close()
-
+    docs = jira_mongo_repo.find_by_product(jira_tickets_collection, product_id)
     logger.info(f"[{product_name}] Extracted {len(docs)} issues from MongoDB")
     return docs
 
 
 @task(name="clean_and_load_jira_to_mariadb")
 def clean_and_load_jira_to_mariadb(product_name: str, docs: list[dict]) -> int:
-    """將 MongoDB raw issues 清洗後 upsert 進 MariaDB jira_tickets 表。"""
+    """Clean MongoDB raw issues and upsert them into the MariaDB jira_tickets table."""
     logger = get_run_logger()
 
     if not docs:
@@ -90,25 +76,19 @@ def clean_and_load_jira_to_mariadb(product_name: str, docs: list[dict]) -> int:
                 "resolved_at": _parse_dt(fields.get("resolutiondate")),
                 "description": str(_safe(fields, "description") or ""),
                 "labels": ",".join(fields.get("labels", [])),
-                "synced_at": datetime.utcnow(),
+                "synced_at": datetime.now(timezone.utc).replace(tzinfo=None),
             }
         )
 
-    # 過濾掉 ticket_key 為空的資料
     rows = [r for r in rows if r.get("ticket_key")]
 
     if not rows:
         logger.info(f"[{product_name}] No valid rows after cleaning")
         return 0
 
-    with engine.begin() as conn:
-        stmt = mysql_upsert(JiraTicket.__table__).values(rows)
-        update_cols = {c.name: c for c in stmt.inserted if c.name != "ticket_key"}
-        stmt = stmt.on_duplicate_key_update(**update_cols)
-        conn.execute(stmt)
-
-    logger.info(f"[{product_name}] Cleaned and loaded {len(rows)} issues into MariaDB")
-    return len(rows)
+    count = jira_ticket_repo.upsert_many(engine, rows)
+    logger.info(f"[{product_name}] Cleaned and loaded {count} issues into MariaDB")
+    return count
 
 
 # ---------- per-product sub-flow ----------
@@ -116,32 +96,26 @@ def clean_and_load_jira_to_mariadb(product_name: str, docs: list[dict]) -> int:
 
 @flow(name="jira_product_clean_flow", log_prints=True)
 def jira_product_clean_flow(product_id: int, product_name: str) -> dict:
-    """針對單一 product 執行 MongoDB → MariaDB 資料清洗。"""
+    """Run MongoDB → MariaDB data cleaning for a single product."""
     docs = extract_jira_from_mongodb(product_id, product_name)
     count = clean_and_load_jira_to_mariadb(product_name, docs)
     return {"product": product_name, "product_id": product_id, "cleaned": count}
 
 
-# ---------- main flow（可手動觸發全部清洗） ----------
+# ---------- main flow (can be triggered manually to clean all) ----------
 
 
 @flow(name="jira_clean_flow", log_prints=True)
 def jira_clean_flow() -> list[dict]:
-    """對所有 enabled products 執行 MongoDB → MariaDB 資料清洗。
-    通常由 jira_sync_flow 自動觸發，亦可手動呼叫。
+    """Run MongoDB → MariaDB data cleaning for all enabled products.
+    Normally triggered automatically by jira_sync_flow, but can also be called manually.
     """
-    from app.db.database import SessionLocal
-    from app.models.product import Product
-
     logger = get_run_logger()
 
     Base.metadata.create_all(engine)
-    db = SessionLocal()
-    try:
-        products = db.query(Product).filter(Product.enabled == True).all()  # noqa: E712
+    with SessionLocal() as db:
+        products = product_repo.list_enabled(db)
         product_list = [{"id": p.id, "name": p.name} for p in products]
-    finally:
-        db.close()
 
     if not product_list:
         logger.info("No enabled products found, skipping.")

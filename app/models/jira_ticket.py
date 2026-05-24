@@ -1,4 +1,4 @@
-from datetime import datetime
+from datetime import datetime, timezone
 
 from sqlalchemy import Column, DateTime, Integer, String, Text
 
@@ -24,4 +24,4 @@ class JiraTicket(Base):
     resolved_at = Column(DateTime, nullable=True)
     description = Column(Text, nullable=True)
     labels = Column(Text, nullable=True)
-    synced_at = Column(DateTime, default=datetime.utcnow)
+    synced_at = Column(DateTime, default=lambda: datetime.now(timezone.utc).replace(tzinfo=None))

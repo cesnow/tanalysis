@@ -2,7 +2,6 @@ fastapi
 uvicorn
 httpx
 pandas
-motor
 prefect
 pydantic-settings
 pymongo

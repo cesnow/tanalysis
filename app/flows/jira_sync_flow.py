@@ -1,22 +1,21 @@
-"""Prefect flow: 針對每個 enabled Product 用 JQL 從 Jira API 抓取所有 issues，upsert 進 MongoDB。
+"""Prefect flow: Fetch all Jira issues via JQL for each enabled Product and upsert them into MongoDB.
 
-排程：每小時執行一次（由 Prefect deployment 設定 interval=3600）。
-完成後自動觸發 jira_clean_flow 進行資料清洗寫入 MariaDB。
+Schedule: runs once per hour (configured via Prefect deployment with interval=3600).
+After completion, automatically triggers jira_clean_flow to clean and write data into MariaDB.
 """
 
 import base64
-from datetime import datetime
 
 import requests
 from prefect import flow, get_run_logger, task
-from pymongo import MongoClient
 
-from app.core.config import settings
+from app.config.settings import settings
+from app.core.constants import JIRA_ISSUE_TYPES
 from app.db.base import Base
 from app.db.database import SessionLocal, engine
-from app.models.product import Product
-
-ISSUE_TYPES = ["Bug", "Epic", "Task", "Sub-task"]
+from app.db.mongodb import jira_tickets_collection
+from app.flows.jira_clean_flow import jira_product_clean_flow
+from app.repositories import jira_mongo_repo, product_repo
 
 
 # ---------- helpers ----------
@@ -31,8 +30,8 @@ def _jira_headers() -> dict:
 
 
 def _build_jql(base_jql: str) -> str:
-    """在 product JQL 基礎上加入 issue type 過濾。"""
-    types_str = ", ".join(f'"{t}"' for t in ISSUE_TYPES)
+    """Append issue type filter to the product's base JQL."""
+    types_str = ", ".join(f'"{t}"' for t in JIRA_ISSUE_TYPES)
     return f"({base_jql}) AND issuetype in ({types_str}) ORDER BY updated DESC"
 
 
@@ -41,7 +40,7 @@ def _build_jql(base_jql: str) -> str:
 
 @task(name="fetch_jira_issues_by_jql", retries=2, retry_delay_seconds=30)
 def fetch_jira_issues_by_jql(product_name: str, jql: str) -> list[dict]:
-    """呼叫 Jira REST API，用 JQL 分頁抓取所有符合的 issues。"""
+    """Call the Jira REST API and paginate through all matching issues using JQL."""
     logger = get_run_logger()
     url = f"{settings.jira_base_url}/rest/api/3/search"
     headers = _jira_headers()
@@ -83,33 +82,11 @@ def fetch_jira_issues_by_jql(product_name: str, jql: str) -> list[dict]:
 
 @task(name="upsert_jira_issues_to_mongodb")
 def upsert_jira_issues_to_mongodb(product_name: str, product_id: int, issues: list[dict]) -> int:
-    """將抓到的 Jira issues upsert 進 MongoDB jira_tickets collection。"""
+    """Upsert fetched Jira issues into the MongoDB jira_tickets collection."""
     logger = get_run_logger()
-
-    if not issues:
-        logger.info(f"[{product_name}] No issues to upsert")
-        return 0
-
-    fetched_at = datetime.utcnow().isoformat()
-    client = MongoClient(settings.mongodb_url)
-    db = client[settings.mongodb_database]
-    collection = db["jira_tickets"]
-
-    upserted = 0
-    for issue in issues:
-        issue["_fetched_at"] = fetched_at
-        issue["_product_id"] = product_id
-        issue["_product_name"] = product_name
-        collection.update_one(
-            {"key": issue["key"]},
-            {"$set": issue},
-            upsert=True,
-        )
-        upserted += 1
-
-    client.close()
-    logger.info(f"[{product_name}] Upserted {upserted} issues into MongoDB")
-    return upserted
+    count = jira_mongo_repo.upsert_many(jira_tickets_collection, issues, product_id, product_name)
+    logger.info(f"[{product_name}] Upserted {count} issues into MongoDB")
+    return count
 
 
 # ---------- per-product sub-flow ----------
@@ -117,34 +94,29 @@ def upsert_jira_issues_to_mongodb(product_name: str, product_id: int, issues: li
 
 @flow(name="jira_product_sync_flow", log_prints=True)
 def jira_product_sync_flow(product_id: int, product_name: str, jql: str) -> dict:
-    """針對單一 product 執行 Jira 抓取並寫入 MongoDB。"""
+    """Fetch Jira issues and write them into MongoDB for a single product."""
     issues = fetch_jira_issues_by_jql(product_name, jql)
     count = upsert_jira_issues_to_mongodb(product_name, product_id, issues)
     return {"product": product_name, "product_id": product_id, "fetched": len(issues), "upserted": count}
 
 
-# ---------- main flow（每小時排程） ----------
+# ---------- main flow (hourly schedule) ----------
 
 
 @flow(name="jira_sync_flow", log_prints=True)
 def jira_sync_flow() -> list[dict]:
-    """主 flow：讀取所有 enabled products，逐一用 JQL 從 Jira API 抓取並 upsert 進 MongoDB。
-    每個 product 完成後，自動觸發 jira_clean_flow 進行資料清洗寫入 MariaDB。
+    """Main flow: load all enabled products and fetch issues from Jira API via JQL, upserting into MongoDB.
+    After each product completes, automatically trigger jira_clean_flow to clean and write data into MariaDB.
 
-    Prefect deployment 建議設定：
-        interval = 3600  # 每小時
+    Recommended Prefect deployment setting:
+        interval = 3600  # every hour
     """
-    from app.flows.jira_clean_flow import jira_product_clean_flow
-
     logger = get_run_logger()
 
     Base.metadata.create_all(engine)
-    db = SessionLocal()
-    try:
-        products = db.query(Product).filter(Product.enabled == True).all()  # noqa: E712
+    with SessionLocal() as db:
+        products = product_repo.list_enabled(db)
         product_list = [{"id": p.id, "name": p.name, "jql": p.jql} for p in products]
-    finally:
-        db.close()
 
     if not product_list:
         logger.info("No enabled products found, skipping.")
@@ -154,13 +126,13 @@ def jira_sync_flow() -> list[dict]:
 
     results = []
     for p in product_list:
-        # Step 1: 同步 Jira → MongoDB
+        # Step 1: sync Jira → MongoDB
         sync_result = jira_product_sync_flow(
             product_id=p["id"],
             product_name=p["name"],
             jql=p["jql"],
         )
-        # Step 2: 同步完成後，觸發清洗 MongoDB → MariaDB
+        # Step 2: after sync, trigger clean MongoDB → MariaDB
         clean_result = jira_product_clean_flow(
             product_id=p["id"],
             product_name=p["name"],

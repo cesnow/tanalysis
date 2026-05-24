@@ -1,0 +1,90 @@
+# ─────────────────────────────────────────────────────────────────────────────
+# TAnalysis — Prefect 3 deployment manifest
+#
+# Quick-start:
+#   1. make prefect-server          # start Prefect server (new terminal)
+#   2. make prefect-pool            # create work pool (once)
+#   3. make prefect-deploy          # register deployments
+#   4. make prefect-worker          # start worker (new terminal)
+#
+# UI: http://localhost:4200
+# ─────────────────────────────────────────────────────────────────────────────
+
+prefect-version: 3.7.2
+name: tanalysis
+
+# ── Build / Push ──────────────────────────────────────────────────────────────
+# No Docker image build needed for local process execution.
+build: null
+push: null
+
+# ── Pull ──────────────────────────────────────────────────────────────────────
+# Executed inside the worker before each flow run.
+# Sets the working directory so `app.*` imports resolve correctly.
+pull:
+  - prefect.deployments.steps.set_working_directory:
+      directory: "."
+
+# ── Shared definitions (YAML anchors) ─────────────────────────────────────────
+definitions:
+
+  work_pools:
+    # Local process-based pool — runs flows as subprocesses on the same machine.
+    # For Kubernetes or Docker, swap the name/type and update job_variables.
+    local_process: &local_process
+      name: tanalysis-pool
+      work_queue_name: default
+      job_variables:
+        # Ensure every flow run can locate the Prefect server.
+        env:
+          PREFECT_API_URL: "http://localhost:4200/api"
+
+  schedules:
+    # ISO 8601 interval — every 60 minutes, anchored to UTC.
+    hourly: &hourly
+      interval: 3600
+      timezone: UTC
+
+  concurrency:
+    # Allow only one run at a time; cancel any newer run that collides.
+    single_run: &single_run
+      limit: 1
+      collision_strategy: CANCEL_NEW
+
+# ── Deployments ───────────────────────────────────────────────────────────────
+deployments:
+
+  # ── jira-sync ──────────────────────────────────────────────────────────────
+  # Reads all enabled Products from MariaDB, pages through Jira REST API via
+  # JQL, and upserts raw issues into MongoDB.  After each product, it
+  # automatically calls jira-clean to push cleaned data into MariaDB.
+  - name: jira-sync
+    entrypoint: app/flows/jira_sync_flow.py:jira_sync_flow
+    description: >
+      Hourly ETL — fetches Jira issues for every enabled Product via JQL and
+      upserts raw data into MongoDB. Triggers jira-clean after each product.
+    tags:
+      - jira
+      - sync
+      - etl
+    schedule: *hourly
+    concurrency_limit: *single_run
+    work_pool: *local_process
+
+  # ── jira-clean ─────────────────────────────────────────────────────────────
+  # Reads raw Jira documents from MongoDB, applies field-level cleaning, and
+  # bulk-upserts structured rows into MariaDB using ON DUPLICATE KEY UPDATE.
+  # Normally chained after jira-sync; can also be triggered manually via the
+  # API endpoint POST /flows/jira-clean.
+  - name: jira-clean
+    entrypoint: app/flows/jira_clean_flow.py:jira_clean_flow
+    description: >
+      On-demand ETL — cleans raw Jira data from MongoDB and upserts structured
+      rows into MariaDB. Called automatically by jira-sync or triggered manually.
+    tags:
+      - jira
+      - clean
+      - etl
+    # No schedule — runs on-demand only.
+    concurrency_limit: *single_run
+    work_pool: *local_process
