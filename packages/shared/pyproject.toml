@@ -25,7 +25,7 @@ dependencies = [
     "alembic",
     "pandas",
     "structlog",
-    "redis>=7.4.0",
+    "redis",
 ]
 
 [tool.hatch.build.targets.wheel]

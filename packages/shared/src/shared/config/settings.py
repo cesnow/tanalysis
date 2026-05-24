@@ -5,8 +5,9 @@ from pathlib import Path
 from pydantic_settings import BaseSettings
 
 # Project root: tanalysis/
-# parents[0]=app/config/  parents[1]=app/  parents[2]=tanalysis/
-_BASE_DIR = Path(__file__).resolve().parents[2]
+# parents[0]=config/  parents[1]=shared/  parents[2]=src/
+# parents[3]=packages/shared/  parents[4]=packages/  parents[5]=tanalysis/
+_BASE_DIR = Path(__file__).resolve().parents[5]
 
 
 class Settings(BaseSettings):

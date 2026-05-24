@@ -3111,7 +3111,7 @@ requires-dist = [
     { name = "python-dotenv" },
     { name = "pytz" },
     { name = "pyyaml" },
-    { name = "redis", specifier = ">=7.4.0" },
+    { name = "redis" },
     { name = "requests" },
     { name = "requests-oauthlib" },
     { name = "sqlalchemy" },
@@ -3245,7 +3245,7 @@ dev = [
 
 [package.metadata]
 requires-dist = [
-    { name = "common", specifier = ">=0.1.2" },
+    { name = "common" },
     { name = "pre-commit", marker = "extra == 'dev'" },
     { name = "pytest", marker = "extra == 'dev'" },
     { name = "pytest-cov", marker = "extra == 'dev'" },

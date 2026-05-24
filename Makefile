@@ -1,4 +1,4 @@
-.PHONY: format lint check docker-up down dev \
+.PHONY: format lint check test docker-up down dev \
         db-migrate db-upgrade \
         prefect-server prefect-pool prefect-pool-inspect \
         prefect-worker prefect-deploy prefect-deploy-sync prefect-deploy-clean
@@ -17,6 +17,10 @@ lint:
 check:
 	uv run ruff format --check .
 	uv run ruff check .
+
+# Run the test suite
+test:
+	uv run pytest
 
 # Start background services (MariaDB, MongoDB, MinIO)
 docker-up:
