@@ -20,6 +20,11 @@ class Settings(BaseSettings):
     mongodb_enabled: bool = True
     mongodb_url: str = "mongodb://localhost:27017"
     mongodb_database: str = "tanalysis"
+    mongodb_replica_set: str | None = None
+
+    # ── Redis ─────────────────────────────────────────────────────────────────
+    redis_enabled: bool = True
+    redis_url: str = "redis://localhost:6379/0"
 
     # ── MariaDB ───────────────────────────────────────────────────────────────
     mariadb_url: str = "mysql+pymysql://root:root@localhost:3306/tanalysis"

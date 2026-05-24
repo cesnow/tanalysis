@@ -18,7 +18,20 @@ class _MongoDBConfig:
     url: str
     database: str
     server_selection_timeout_ms: int = 5_000
+    replica_set: str | None = None
+
+
+@dataclass(frozen=True)
+class _RedisConfig:
+    enabled: bool
+    url: str
 
 
 mariadb = _MariaDBConfig(url=settings.mariadb_url)
-mongodb = _MongoDBConfig(enabled=settings.mongodb_enabled, url=settings.mongodb_url, database=settings.mongodb_database)
+mongodb = _MongoDBConfig(
+    enabled=settings.mongodb_enabled,
+    url=settings.mongodb_url,
+    database=settings.mongodb_database,
+    replica_set=settings.mongodb_replica_set,
+)
+redis = _RedisConfig(enabled=settings.redis_enabled, url=settings.redis_url)
