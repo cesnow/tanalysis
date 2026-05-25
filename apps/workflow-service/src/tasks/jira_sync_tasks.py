@@ -29,7 +29,7 @@ async def _fetch_issues_async(product_name: str, full_jql: str, logger) -> list[
 
     async with aiohttp.ClientSession(headers=headers) as session:
         # 1. Fetch custom fields first
-        field_url = f"{settings.jira_base_url}/rest/api/3/field"
+        field_url = f"{settings.jira_base_url}/rest/api/latest/field"
         async with session.get(field_url) as resp:
             resp.raise_for_status()
             fields_data = await resp.json()
@@ -38,7 +38,7 @@ async def _fetch_issues_async(product_name: str, full_jql: str, logger) -> list[
         fields_param = ",".join(field_ids)
 
         # 2. Pass fields to the search API
-        search_url = f"{settings.jira_base_url}/rest/api/3/search"
+        search_url = f"{settings.jira_base_url}/rest/api/latest/search"
         all_issues: list[dict] = []
         start_at = 0
         max_results = 100
