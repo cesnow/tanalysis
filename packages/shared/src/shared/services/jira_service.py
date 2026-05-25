@@ -12,7 +12,7 @@ async def _fetch_jira_tickets_async(jql: str, max_results: int) -> list[dict]:
 
     async with aiohttp.ClientSession(auth=auth) as session:
         # 1. Fetch custom fields first
-        field_url = f"{settings.jira_base_url}/rest/api/latest/field"
+        field_url = f"{settings.jira_base_url}/rest/api/3/field"
         async with session.get(field_url) as resp:
             resp.raise_for_status()
             fields_data = await resp.json()
@@ -21,7 +21,7 @@ async def _fetch_jira_tickets_async(jql: str, max_results: int) -> list[dict]:
         fields_param = ",".join(field_ids)
 
         # 2. Pass fields to the search API
-        search_url = f"{settings.jira_base_url}/rest/api/latest/search"
+        search_url = f"{settings.jira_base_url}/rest/api/3/search"
         params = {
             "jql": jql,
             "maxResults": max_results,
@@ -51,7 +51,7 @@ def get_tickets_from_mongo(project_key: str | None = None, limit: int = 50) -> l
 
 async def _fetch_jira_fields_async() -> list[dict]:
     auth = aiohttp.BasicAuth(settings.jira_email, settings.jira_api_token)
-    url = f"{settings.jira_base_url}/rest/api/latest/field"
+    url = f"{settings.jira_base_url}/rest/api/3/field"
 
     async with aiohttp.ClientSession(auth=auth) as session, session.get(url) as resp:
         resp.raise_for_status()
