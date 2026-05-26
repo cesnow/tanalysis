@@ -41,7 +41,7 @@ async def _fetch_issues_async(product_name: str, full_jql: str, logger) -> list[
         search_url = f"{settings.jira_base_url}/rest/api/latest/search"
         all_issues: list[dict] = []
         start_at = 0
-        max_results = 100
+        max_results = 500
 
         while True:
             params = {
