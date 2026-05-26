@@ -2,6 +2,7 @@
 
 from datetime import UTC, datetime
 
+from sqlalchemy import select
 from sqlalchemy.orm import Session
 
 from shared.models.product import Product
@@ -9,19 +10,19 @@ from shared.schemas.product import ProductCreate, ProductUpdate
 
 
 def get_by_id(db: Session, product_id: int) -> Product | None:
-    return db.query(Product).filter(Product.id == product_id).first()
+    return db.scalars(select(Product).where(Product.id == product_id)).first()
 
 
 def get_by_name(db: Session, name: str) -> Product | None:
-    return db.query(Product).filter(Product.name == name).first()
+    return db.scalars(select(Product).where(Product.name == name)).first()
 
 
 def list_all(db: Session) -> list[Product]:
-    return db.query(Product).order_by(Product.id).all()
+    return list(db.scalars(select(Product).order_by(Product.id)).all())
 
 
 def list_enabled(db: Session) -> list[Product]:
-    return db.query(Product).filter(Product.enabled == True).all()  # noqa: E712
+    return list(db.scalars(select(Product).where(Product.enabled.is_(True))).all())
 
 
 def create(db: Session, payload: ProductCreate) -> Product:
